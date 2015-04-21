@@ -1,6 +1,6 @@
 NAME = Playbin
 
-GCC_FLAGS = `pkg-config --cflags --libs gstreamer-1.0`
+GCC_FLAGS = `pkg-config --cflags --libs gstreamer-1.0 gtk+-2.0`
 
 all : ${NAME}
 
