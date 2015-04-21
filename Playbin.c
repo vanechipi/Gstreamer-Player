@@ -78,7 +78,7 @@ funcion_quit (GtkButton * boton, gpointer data)
 }
 
 static gboolean
-my_bus_callback (GstBus *bus, GstMessage *message, gpointer data)
+my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
 {
   g_print ("Got %s message\n", GST_MESSAGE_TYPE_NAME (message));
 
@@ -98,7 +98,7 @@ my_bus_callback (GstBus *bus, GstMessage *message, gpointer data)
 }
 
 gint
-main (gint argc, gchar *argv[])
+main (gint argc, gchar * argv[])
 {
   GstBus *bus;
   struct Player_data pdata;
