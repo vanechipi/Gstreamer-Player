@@ -1,9 +1,12 @@
 #include <gst/gst.h>
 #include <gtk/gtk.h>
+#include <string.h>
+#include <stdlib.h>
 
 struct Player_data
 {
   GstElement *play;
+  GtkWindow *window;
   GtkWidget *current_time_l;
   GtkWidget *end_time_l;
   GtkWidget *slider;
@@ -17,14 +20,20 @@ static void play_cb (GtkButton * button, gpointer pdata);
 static void pause_cb (GtkButton * button, gpointer pdata);
 static void stop_cb (GtkButton * button, gpointer pdata);
 static void slider_cb (GtkButton * button, gpointer data);
+static void open_file_cb (GtkWidget * widget, gpointer data);
 static gboolean update_slider (struct Player_data *pdata);
 
 static void
 create_windows (struct Player_data *pdata)
 {
   GtkWidget *window;
+  GtkWidget *menubar;
+  GtkWidget *filemenu;
+  GtkWidget *menu;
+  GtkWidget *open_file;
   GtkWidget *hboxT;
   GtkWidget *vbox;
+  GtkWidget *vboxT;
   GtkWidget *hboxB;
   GtkWidget *slider;
   GtkWidget *current_time_l;
@@ -36,6 +45,17 @@ create_windows (struct Player_data *pdata)
   play_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_PLAY);
   stop_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_STOP);
   pause_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_PAUSE);
+  menubar = gtk_menu_bar_new ();
+  filemenu = gtk_menu_new ();
+  menu = gtk_menu_item_new_with_label ("Menu");
+  open_file = gtk_menu_item_new_with_label ("Open File");
+
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu), filemenu);
+  gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), open_file);
+  gtk_menu_shell_append (GTK_MENU_SHELL (menubar), menu);
+
+  // Created Slider and labels
+
   adjustment = (GtkAdjustment *) gtk_adjustment_new (0.0, 0.0, 100.0, 1.0, 5.0,
       0.0);
   slider = gtk_hscale_new (adjustment);
@@ -46,8 +66,12 @@ create_windows (struct Player_data *pdata)
   hboxT = gtk_hbox_new (TRUE, 10);
   hboxB = gtk_hbox_new (TRUE, 10);
   vbox = gtk_vbox_new (TRUE, 10);
+  vboxT = gtk_vbox_new (FALSE, 0);
 
   gtk_window_set_title ((GtkWindow *) window, "Chipi_Player");
+
+  gtk_box_pack_start ((GtkBox *) vboxT, menubar, FALSE, FALSE, 0);
+
   gtk_box_pack_start ((GtkBox *) hboxT, stop_button, TRUE, TRUE, 2);
   gtk_box_pack_start ((GtkBox *) hboxT, play_button, TRUE, TRUE, 2);
   gtk_box_pack_start ((GtkBox *) hboxT, pause_button, TRUE, TRUE, 2);
@@ -56,10 +80,11 @@ create_windows (struct Player_data *pdata)
   gtk_box_pack_start ((GtkBox *) hboxB, slider, TRUE, TRUE, 2);
   gtk_box_pack_start ((GtkBox *) hboxB, end_time_l, TRUE, TRUE, 2);
 
+  gtk_box_pack_start ((GtkBox *) vboxT, vbox, TRUE, TRUE, 2);
   gtk_box_pack_start ((GtkBox *) vbox, hboxT, TRUE, TRUE, 2);
   gtk_box_pack_start ((GtkBox *) vbox, hboxB, TRUE, TRUE, 2);
 
-  gtk_container_add ((GtkContainer *) window, vbox);
+  gtk_container_add ((GtkContainer *) window, vboxT);
 
   g_signal_connect ((GObject *) play_button, "clicked",
       (GCallback) play_cb, (gpointer) pdata);
@@ -71,9 +96,12 @@ create_windows (struct Player_data *pdata)
       (GCallback) slider_cb, (gpointer) pdata);
   g_signal_connect ((GObject *) window, "destroy",
       (GCallback) funcion_quit, (gpointer) pdata);
+  g_signal_connect ((GObject *) open_file, "activate",
+      (GCallback) open_file_cb, (gpointer) pdata);
 
   gtk_widget_show_all (window);
 
+  pdata->window = (GtkWindow *) window;
   pdata->current_time_l = current_time_l;
   pdata->end_time_l = end_time_l;
   pdata->slider = slider;
@@ -94,12 +122,16 @@ pause_cb (GtkButton * button, gpointer pdata)
 }
 
 static void
-stop_cb (GtkButton * button, gpointer pdata)
+stop_cb (GtkButton * button, gpointer data)
 {
-  gst_element_set_state (((struct Player_data *) (pdata))->play,
-      GST_STATE_READY);
-  gtk_range_set_value ((GtkRange *) ((struct Player_data *) (pdata))->slider,
-      0.0);
+  gchar start_time[6];
+
+  struct Player_data *pdata = (struct Player_data *) data;
+
+  gst_element_set_state (pdata->play, GST_STATE_READY);
+  gtk_range_set_value ((GtkRange *) pdata->slider, 0.0);
+  sprintf (start_time, "%02d:%02d", 0, 0);
+  gtk_label_set_text ((GtkLabel *) pdata->current_time_l, start_time);
 }
 
 static void
@@ -114,6 +146,46 @@ slider_cb (GtkButton * button, gpointer data)
       GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT,
       (gint64) (position * (gdouble) pdata->duration) / 100.0);
 }
+
+// Callback of menu's button Open File
+
+static void
+open_file_cb (GtkWidget * widget, gpointer data)
+{
+  GtkWidget *dialog;
+  struct Player_data *pdata = (struct Player_data *) data;
+  GtkWindow *window = pdata->window;
+  gint res;
+  gchar *file = "file://";
+  gchar *uri;
+  gchar *filename;
+
+  dialog = gtk_file_chooser_dialog_new ("Open File",
+      window,
+      GTK_FILE_CHOOSER_ACTION_OPEN,
+      GTK_STOCK_CANCEL,
+      GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+  res = gtk_dialog_run ((GtkDialog *) dialog);
+
+  if (res == GTK_RESPONSE_ACCEPT) {
+    filename = gtk_file_chooser_get_filename ((GtkFileChooser *) dialog);
+    uri = (gchar *) malloc (strlen (file) + strlen (filename));
+    strcpy (uri, file);
+    strcat (uri, filename);
+
+    gst_element_set_state (pdata->play, GST_STATE_READY);
+    g_object_set (G_OBJECT (pdata->play), "uri", uri, NULL);
+    pdata->duration = -1;
+    gst_element_set_state (((struct Player_data *) (pdata))->play,
+        GST_STATE_PLAYING);
+
+    free (uri);
+    g_free (filename);
+  }
+
+  gtk_widget_destroy (dialog);
+}
+
 
 static gboolean
 update_slider (struct Player_data *pdata)
