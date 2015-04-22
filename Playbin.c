@@ -23,6 +23,8 @@ static void slider_cb (GtkButton * button, gpointer data);
 static void open_file_cb (GtkWidget * widget, gpointer data);
 static gboolean update_slider (struct Player_data *pdata);
 
+// Created all element of windows
+
 static void
 create_windows (struct Player_data *pdata)
 {
@@ -41,10 +43,15 @@ create_windows (struct Player_data *pdata)
   GtkAdjustment *adjustment;
   GtkWidget *play_button, *stop_button, *pause_button;
 
+  // Created Window and Buttons
+
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   play_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_PLAY);
   stop_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_STOP);
   pause_button = gtk_button_new_from_stock (GTK_STOCK_MEDIA_PAUSE);
+
+  // Created Menu
+
   menubar = gtk_menu_bar_new ();
   filemenu = gtk_menu_new ();
   menu = gtk_menu_item_new_with_label ("Menu");
@@ -63,12 +70,18 @@ create_windows (struct Player_data *pdata)
   current_time_l = gtk_label_new ("00:00");
   end_time_l = gtk_label_new ("00:00");
 
-  hboxT = gtk_hbox_new (TRUE, 10);
-  hboxB = gtk_hbox_new (TRUE, 10);
-  vbox = gtk_vbox_new (TRUE, 10);
-  vboxT = gtk_vbox_new (FALSE, 0);
+  // Created Boxes
+
+  hboxT = gtk_hbox_new (TRUE, 5);
+  hboxB = gtk_hbox_new (TRUE, 5);
+  vbox = gtk_vbox_new (TRUE, 5);
+  vboxT = gtk_vbox_new (FALSE, 5);
+
+  // Window's Title
 
   gtk_window_set_title ((GtkWindow *) window, "Chipi_Player");
+
+  // Packing Boxes
 
   gtk_box_pack_start ((GtkBox *) vboxT, menubar, FALSE, FALSE, 0);
 
@@ -86,6 +99,8 @@ create_windows (struct Player_data *pdata)
 
   gtk_container_add ((GtkContainer *) window, vboxT);
 
+  // All signal connect of elements
+
   g_signal_connect ((GObject *) play_button, "clicked",
       (GCallback) play_cb, (gpointer) pdata);
   g_signal_connect ((GObject *) stop_button, "clicked",
@@ -101,11 +116,15 @@ create_windows (struct Player_data *pdata)
 
   gtk_widget_show_all (window);
 
+  // Initialization
+
   pdata->window = (GtkWindow *) window;
   pdata->current_time_l = current_time_l;
   pdata->end_time_l = end_time_l;
   pdata->slider = slider;
 }
+
+// Callback of Play Button
 
 static void
 play_cb (GtkButton * button, gpointer pdata)
@@ -114,12 +133,16 @@ play_cb (GtkButton * button, gpointer pdata)
       GST_STATE_PLAYING);
 }
 
+// Callback of Pause Button
+
 static void
 pause_cb (GtkButton * button, gpointer pdata)
 {
   gst_element_set_state (((struct Player_data *) (pdata))->play,
       GST_STATE_PAUSED);
 }
+
+// Callback of Stop Button
 
 static void
 stop_cb (GtkButton * button, gpointer data)
@@ -133,6 +156,8 @@ stop_cb (GtkButton * button, gpointer data)
   sprintf (start_time, "%02d:%02d", 0, 0);
   gtk_label_set_text ((GtkLabel *) pdata->current_time_l, start_time);
 }
+
+// Callback of Slider
 
 static void
 slider_cb (GtkButton * button, gpointer data)
@@ -187,6 +212,8 @@ open_file_cb (GtkWidget * widget, gpointer data)
 }
 
 
+// Update slider and Time of labels
+
 static gboolean
 update_slider (struct Player_data *pdata)
 {
@@ -227,6 +254,8 @@ update_slider (struct Player_data *pdata)
   return TRUE;
 }
 
+// Callback of quit button of window
+
 static void
 funcion_quit (GtkButton * boton, gpointer data)
 {
@@ -237,6 +266,8 @@ funcion_quit (GtkButton * boton, gpointer data)
 
   gtk_main_quit ();
 }
+
+// Callback bus
 
 static gboolean
 my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
@@ -257,6 +288,8 @@ my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
 
   return TRUE;
 }
+
+// Main
 
 gint
 main (gint argc, gchar * argv[])
